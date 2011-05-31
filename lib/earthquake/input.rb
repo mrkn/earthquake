@@ -27,6 +27,14 @@ module Earthquake
       completions << block
     end
 
+    def command_aliases
+      @command_aliases ||= {}
+    end
+
+    def alias_command(name, target)
+      command_aliases[name.to_s] = target.to_s
+    end
+
     def input(text)
       return if text.empty?
 
@@ -107,7 +115,7 @@ module Earthquake
 
     completion do |text|
       regexp = /^#{Regexp.quote(text)}/
-      results = command_names.grep(regexp)
+      results = (command_names + command_aliases.keys.map {|i| ":#{i}"}).grep(regexp)
       history = Readline::HISTORY.reverse_each.take(config[:history_size]) | @tweets_for_completion
       history.inject(results){|r, line|
         r | line.split.grep(regexp)
@@ -123,11 +131,13 @@ module Earthquake
     end
 
     input_filter do |text|
-      if text =~ %r|^:|
-        text.gsub(/\$\w+/) { |var| var2id(var) || var }
-      else
-        text
+      if text =~ %r|^:(\w+)|
+        if target = command_aliases[$1]
+          text = text.sub(%r|^:\w+|, ":#{target}")
+        end
+        text = text.gsub(/\$\w+/) { |var| var2id(var) || var }
       end
+      text
     end
   end
 

@@ -28,7 +28,7 @@ Earthquake.init do
     input(":update #{m[0]}")
   end
 
-  command %r|^:reply (\d+)\s+(.*)|, :as => :reply do |m|
+  command %r|^:reply\s+(\d+)\s+(.*)|, :as => :reply do |m|
     in_reply_to_status_id = m[1]
     target = twitter.status(in_reply_to_status_id)
     screen_name = target["user"]["screen_name"]
@@ -88,7 +88,8 @@ Earthquake.init do
   end
 
   command :search do |m|
-    puts_items twitter.search(m[1], config[:search_options] || {})["results"].each { |s|
+    search_options = config[:search_options] ? config[:search_options].dup : {}
+    puts_items twitter.search(m[1], search_options)["results"].each { |s|
       s["user"] = {"screen_name" => s["from_user"]}
       s["_disable_cache"] = true
       words = m[1].split(/\s+/).reject{|x| x[0] =~ /^-|^(OR|AND)$/ }.map{|x|
@@ -246,5 +247,9 @@ Earthquake.init do
 
   command :edit_config do
     system ENV["EDITOR"] + " #{config[:file]}"
+  end
+
+  command %r|^:alias\s+:?(\w+)\s+:?(\w+)|, :as => :alias do |m|
+    alias_command m[1], m[2]
   end
 end
